@@ -143,10 +143,11 @@ meta target act =
 preprocess :: FilePath -> Action [(String, String)] -> Rules ()
 preprocess file macros =
   file %> \out -> do
-    need [ file <.> "m4" ]
+    let template = file <.> "m4"
+    need [ template ]
     let f k v = "-D" <> k <> "=" <> v
     macros' <- macros
-    content <- m4 $ file : (uncurry f <$> macros')
+    content <- m4 $ template : (uncurry f <$> macros')
     writeFileChanged out content
 
 -- | Haskell source rules
@@ -173,8 +174,8 @@ shakeRules = do
   -- | clear
   --
   phony "clear" $
-    forM_ [ fakeDir, metaDir ] $ \dir ->
-      removeFilesAfter dir [ "//*" ]
+    forM_ [ fakeDir, metaDir ] $
+      flip removeFilesAfter [ "//*" ]
 
   -- | clean
   --
@@ -185,8 +186,8 @@ shakeRules = do
   -- | clobber
   --
   phony "clobber" $
-    forM_ [ buildDir, stackDir ] $ \dir ->
-      removeFilesAfter dir [ "//*" ]
+    forM_ [ buildDir, stackDir ] $
+      flip removeFilesAfter [ "//*" ]
 
 -- | Stack rules.
 --

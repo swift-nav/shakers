@@ -1,8 +1,10 @@
 name:                  shakers
 version:               VERSION
 synopsis:              Shake helpers.
+description:           Primitive helpers for Shake files.
 homepage:              https://github.com/swift-nav/shakers
 license:               MIT
+license-file:          LICENSE
 author:                Swift Navigation Inc.
 maintainer:            Mark Fine <dev@swiftnav.com>
 copyright:             Copyright (C) 2016 Swift Navigation, Inc.

@@ -14,25 +14,26 @@ import Development.Shakers
 -- | Main entry point.
 --
 main :: IO ()
-main =
-  shakeMain $ do
-    let pats =
-          [ "stack.yaml"
-          , "Shakefile.hs"
-          , "src//*.hs"
-          ]
+main = shakeMain $ do
+  let pats =
+        [ "stack.yaml"
+        , "Shakefile.hs"
+        , "src//*.hs"
+        ]
 
-    -- | Cabal rules.
-    --
-    cabalRules "shakers.cabal"
+  -- | Cabal rules.
+  --
+  cabalRules "shakers.cabal"
 
-    -- | Stack rules.
-    --
-    stackRules pats
+  -- | Stack rules.
+  --
+  stackRules pats
 
-    -- | sanity
-    --
-    fake' pats "sanity" $ const $
-      need [ "lint", fakeFile "build-error" ]
+  -- | sanity
+  --
+  fake' pats "sanity" $ const $
+    need [ "lint", fakeFile "build-error" ]
 
-    want [ "build-error", "lint", "format" ]
+  -- | Default things to run.
+  --
+  want [ "build-error", "lint", "format" ]
