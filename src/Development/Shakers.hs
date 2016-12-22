@@ -7,23 +7,32 @@ module Development.Shakers
   ( module Exports
   , fakeFile
   , metaFile
+  , mirrorDir
   , cmdArgs
   , cmdArgs_
+  , cmdArgsDir
+  , cmdArgsDir_
   , stack
+  , stackExec
   , git
   , m4
+  , touchFile
+  , copyFileChanged'
   , fake
   , fake'
   , meta
   , preprocess
+  , mirror
   , stackRules
   , cabalRules
   , shakeMain
   ) where
 
-import BasicPrelude      as Exports hiding ((*>))
+import BasicPrelude               as Exports hiding ((*>))
 import Data.Char
-import Development.Shake as Exports
+import Development.Shake          as Exports
+import Development.Shake.FilePath
+import System.Directory
 
 -- | File used for version change detection.
 --
@@ -60,6 +69,11 @@ metaFile = (metaDir </>)
 stackDir :: FilePath
 stackDir = ".stack-work"
 
+-- | Mirror directory of current parent directory.
+--
+mirrorDir :: Action FilePath
+mirrorDir = liftIO $ (buildDir </>) . takeFileName <$> getCurrentDirectory
+
 -- | Remove right excess on string.
 --
 rstrip :: String -> String
@@ -75,10 +89,25 @@ cmdArgs c as = rstrip . fromStdout <$> cmd c as
 cmdArgs_ :: String -> [String] -> Action ()
 cmdArgs_ c as = unit $ cmd c as
 
+-- | Run commands in a dir with return string.
+--
+cmdArgsDir :: FilePath -> String -> [String] -> Action String
+cmdArgsDir d c as = rstrip . fromStdout <$> cmd (Cwd d) c as
+
+-- | Run commands in a dir with no return.
+--
+cmdArgsDir_ :: FilePath -> String -> [String] -> Action ()
+cmdArgsDir_ d c as = unit $ cmd (Cwd d) c as
+
 -- | Stack command.
 --
 stack :: [String] -> Action ()
 stack = cmdArgs_ "stack"
+
+-- | Stack exec command.
+--
+stackExec :: String -> [String] -> Action ()
+stackExec cmd' args = stack $ "exec" : cmd' : "--" : args
 
 -- | Sylish command.
 --
@@ -109,6 +138,13 @@ gitVersion = git [ "describe", "--tags", "--abbrev=0" ]
 --
 touchFile :: FilePath -> Action ()
 touchFile = flip writeFile' mempty
+
+-- | Copy a file if changed, creating parent directories.
+--
+copyFileChanged' :: FilePath -> FilePath -> Action ()
+copyFileChanged' a b = do
+  liftIO $ createDirectoryIfMissing True $ dropFileName b
+  copyFileChanged a b
 
 -- | Use a fake file to keep track of the last time an file-free action ran.
 --
@@ -150,6 +186,14 @@ preprocess file macros =
     content <- m4 $ template : (uncurry f <$> macros')
     writeFileChanged out content
 
+-- | Mirror files to the mirror directory.
+--
+mirror :: [FilePattern] -> Rules ()
+mirror pats =
+  fake' pats "mirror" $ mapM_ $ \file -> do
+    dir <- mirrorDir
+    copyFileChanged' file $ dir </> file
+
 -- | Haskell source rules
 --
 hsRules :: Rules ()
@@ -167,7 +211,7 @@ hsRules = do
   fake' pats "lint" $ \files ->
     lint files
 
--- | Build-in rules.
+-- | Built-in rules.
 --
 shakeRules :: Rules ()
 shakeRules = do

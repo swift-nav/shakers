@@ -19,6 +19,7 @@ library
   ghc-options:         -Wall
   build-depends:       base >= 4.8 && < 4.9
                      , basic-prelude
+                     , directory
                      , shake
 
 executable shake-shakers
