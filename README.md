@@ -4,6 +4,7 @@
 
 A library of [shake][shake] helpers.
 
+
 ## Development
 
 `shakers` has a shakefile/makefile to provide convience around building and testing:
@@ -25,6 +26,7 @@ A library of [shake][shake] helpers.
     
     # format the project source code
     $ ./Shakefile.hs format
+
 
 ## Dependencies
 
