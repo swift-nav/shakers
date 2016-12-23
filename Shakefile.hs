@@ -32,7 +32,7 @@ main = shakeMain $ do
   -- | sanity
   --
   fake' pats "sanity" $ const $
-    need [ "lint", fakeFile "build-error" ]
+    need [ fakeFile "build-error", "lint" ]
 
   -- | Default things to run.
   --
