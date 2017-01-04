@@ -22,6 +22,7 @@ module Development.Shakers
   , fake'
   , meta
   , preprocess
+  , preprocess'
   , mirror
   , stackRules
   , cabalRules
@@ -174,17 +175,21 @@ meta target act =
     content <- act
     writeFileChanged out content
 
--- | Preprocess a file with m4
+-- | Preprocess a file with m4.
 --
-preprocess :: FilePath -> Action [(String, String)] -> Rules ()
-preprocess file macros =
-  file %> \out -> do
-    let template = file <.> "m4"
-    need [ template ]
+preprocess :: FilePattern -> FilePath -> Action [(String, String)] -> Rules ()
+preprocess target file macros =
+  target %> \out -> do
+    need [ file ]
     let f k v = "-D" <> k <> "=" <> v
     macros' <- macros
-    content <- m4 $ template : (uncurry f <$> macros')
+    content <- m4 $ file : (uncurry f <$> macros')
     writeFileChanged out content
+
+-- | Preprocess a file with m4, use default file name.
+--
+preprocess' :: FilePath -> Action [(String, String)] -> Rules ()
+preprocess' file = preprocess file (file <.> "m4")
 
 -- | Mirror files to the mirror directory.
 --
@@ -293,7 +298,7 @@ cabalRules file = do
 
   -- | cabal
   --
-  preprocess file $ do
+  preprocess' file $ do
     need [ metaFile "gitVersion" ]
     version <- gitVersion
     return [ ("VERSION", version) ]
