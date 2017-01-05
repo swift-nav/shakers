@@ -24,6 +24,7 @@ module Development.Shakers
   , preprocess
   , preprocess'
   , mirror
+  , getHashedVersion
   , stackRules
   , cabalRules
   , shakeMain
@@ -198,6 +199,13 @@ mirror pats =
   fake' pats "mirror" $ mapM_ $ \file -> do
     dir <- mirrorDir
     copyFileChanged' file $ dir </> file
+
+-- | Build a hash version from a directory and file pattern.
+--
+getHashedVersion :: FilePath -> [FilePattern] -> Action String
+getHashedVersion dir pats = do
+  files <- getDirectoryFiles dir pats
+  liftIO $ getHashedShakeVersion files
 
 -- | Haskell source rules
 --
