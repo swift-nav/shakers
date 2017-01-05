@@ -205,7 +205,7 @@ mirror pats =
 getHashedVersion :: FilePath -> [FilePattern] -> Action String
 getHashedVersion dir pats = do
   files <- getDirectoryFiles dir pats
-  liftIO $ getHashedShakeVersion files
+  liftIO $ getHashedShakeVersion $ (dir </>) <$> files
 
 -- | Haskell source rules
 --
