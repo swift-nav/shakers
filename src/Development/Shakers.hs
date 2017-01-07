@@ -8,6 +8,7 @@ module Development.Shakers
   , fakeFile
   , metaFile
   , mirrorDir
+  , parentDir
   , cmdArgs
   , cmdArgs_
   , cmdArgsDir
@@ -71,10 +72,15 @@ metaFile = (metaDir </>)
 stackDir :: FilePath
 stackDir = ".stack-work"
 
+-- | Parent directory.
+--
+parentDir :: Action FilePath
+parentDir = liftIO $ takeFileName <$> getCurrentDirectory
+
 -- | Mirror directory of current parent directory.
 --
 mirrorDir :: Action FilePath
-mirrorDir = liftIO $ (buildDir </>) . takeFileName <$> getCurrentDirectory
+mirrorDir = (buildDir </>) <$> parentDir
 
 -- | Remove right excess on string.
 --
