@@ -365,7 +365,7 @@ cabalRules file = do
 shakeMain :: Rules () -> IO ()
 shakeMain act = do
   version <- getHashedShakeVersion [ shakeFile ]
-  shakeArgs shakeOptions { shakeFiles = buildDir, shakeVersion = version } $ do
+  shakeArgs shakeOptions { shakeFiles = buildDir, shakeVersion = version, shakeThreads = 0 } $ do
     shakeRules
     hsRules
     act
