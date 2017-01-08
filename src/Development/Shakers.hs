@@ -14,9 +14,15 @@ module Development.Shakers
   , cmdArgsDir
   , cmdArgsDir_
   , stack
-  , stackExec
+  , stack_
+  , stackExec_
   , git
   , m4
+  , rsync_
+  , ssh
+  , ssh_
+  , sshDir
+  , sshDir_
   , touchFile
   , copyFileChanged'
   , fake
@@ -107,25 +113,30 @@ cmdArgsDir d c as = rstrip . fromStdout <$> cmd (Cwd d) c as
 cmdArgsDir_ :: FilePath -> String -> [String] -> Action ()
 cmdArgsDir_ d c as = unit $ cmd (Cwd d) c as
 
--- | Stack command.
+-- | Stack command without return.
 --
-stack :: [String] -> Action ()
-stack = cmdArgs_ "stack"
+stack :: [String] -> Action String
+stack = cmdArgs "stack"
+
+-- | Stack command without return.
+--
+stack_ :: [String] -> Action ()
+stack_ = cmdArgs_ "stack"
 
 -- | Stack exec command.
 --
-stackExec :: String -> [String] -> Action ()
-stackExec cmd' args = stack $ "exec" : cmd' : "--" : args
+stackExec_ :: String -> [String] -> Action ()
+stackExec_ cmd' args = stack_ $ "exec" : cmd' : "--" : args
 
 -- | Sylish command.
 --
-stylish :: [String] -> Action ()
-stylish = cmdArgs_ "stylish-haskell"
+stylish_ :: [String] -> Action ()
+stylish_ = cmdArgs_ "stylish-haskell"
 
 -- | Lint command.
 --
-lint :: [String] -> Action ()
-lint = cmdArgs_ "hlint"
+lint_ :: [String] -> Action ()
+lint_ = cmdArgs_ "hlint"
 
 -- | Git command.
 --
@@ -136,6 +147,31 @@ git = cmdArgs "git"
 --
 m4 :: [String] -> Action String
 m4 = cmdArgs "m4"
+
+-- | Rsync command.
+--
+rsync_ :: [String] -> Action ()
+rsync_ = cmdArgs_ "rsync"
+
+-- | SSH command.
+--
+ssh :: String -> [String] -> Action String
+ssh host args = cmdArgs "ssh" $ host : args
+
+-- | SSH command with no return.
+--
+ssh_ :: String -> [String] -> Action ()
+ssh_ host args = cmdArgs_ "ssh" $ host : args
+
+-- | SSH command in a remote directory.
+--
+sshDir :: String -> FilePath -> [String] -> Action String
+sshDir host dir args = ssh host $ "cd" : dir : "&&" : args
+
+-- | SSH command in a remote directory with no return.
+--
+sshDir_ :: String -> FilePath -> [String] -> Action ()
+sshDir_ host dir args = ssh_ host $ "cd" : dir : "&&" : args
 
 -- | Git version.
 --
@@ -223,12 +259,12 @@ hsRules = do
   --
   fake' pats "format" $ \files -> do
     need [ ".stylish-haskell.yaml" ]
-    stylish $ [ "-c", ".stylish-haskell.yaml", "-i" ] <> files
+    stylish_ $ [ "-c", ".stylish-haskell.yaml", "-i" ] <> files
 
   -- | lint
   --
   fake' pats "lint" $ \files ->
-    lint files
+    lint_ files
 
 -- | Built-in rules.
 --
@@ -243,7 +279,7 @@ shakeRules = do
   -- | clean
   --
   phony "clean" $ do
-    stack [ "clean" ]
+    stack_ [ "clean" ]
     removeFilesAfter buildDir [ "//*" ]
 
   -- | clobber
@@ -259,47 +295,47 @@ stackRules pats = do
   -- | build
   --
   fake' pats "build" $ const $
-    stack [ "build", "--fast" ]
+    stack_ [ "build", "--fast" ]
 
   -- | build-error
   --
   fake' pats "build-error" $ const $
-    stack [ "build", "--fast", "--ghc-options=-Werror" ]
+    stack_ [ "build", "--fast", "--ghc-options=-Werror" ]
 
   -- | build-tests
   --
   fake' pats "build-tests" $ const $
-    stack [ "build", "--fast", "--test", "--no-run-tests" ]
+    stack_ [ "build", "--fast", "--test", "--no-run-tests" ]
 
   -- | build-tests-error
   --
   fake' pats "build-tests-error" $ const $
-    stack [ "build", "--fast", "--test", "--no-run-tests", "--ghc-options=-Werror" ]
+    stack_ [ "build", "--fast", "--test", "--no-run-tests", "--ghc-options=-Werror" ]
 
   -- | install
   --
   fake' pats "install" $ const $
-    stack [ "build", "--fast", "--copy-bins" ]
+    stack_ [ "build", "--fast", "--copy-bins" ]
 
   -- | tests
   --
   phony "tests" $
-    stack [ "build", "--fast", "--test" ]
+    stack_ [ "build", "--fast", "--test" ]
 
   -- | tests-error
   --
   phony "tests-error" $
-    stack [ "build", "--fast", "--test", "--ghc-options=-Werror" ]
+    stack_ [ "build", "--fast", "--test", "--ghc-options=-Werror" ]
 
   -- | ghci
   --
   phony "ghci" $
-    stack [ "ghci", "--fast" ]
+    stack_ [ "ghci", "--fast" ]
 
   -- | ghci-tests
   --
   phony "ghci-tests" $
-    stack [ "ghci", "--fast", "--test" ]
+    stack_ [ "ghci", "--fast", "--test" ]
 
 -- | Cabal and hackage rules.
 --
@@ -321,8 +357,8 @@ cabalRules file = do
   --
   phony "publish" $ do
     need [ file ]
-    stack [ "sdist" ]
-    stack [ "upload", ".", "--no-signature" ]
+    stack_ [ "sdist" ]
+    stack_ [ "upload", ".", "--no-signature" ]
 
 -- | Main entry point.
 --
