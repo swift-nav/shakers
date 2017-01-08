@@ -15,6 +15,7 @@ module Development.Shakers
   , cmdArgsDir_
   , stack
   , stack_
+  , stackExec
   , stackExec_
   , git
   , m4
@@ -124,6 +125,11 @@ stack_ :: [String] -> Action ()
 stack_ = cmdArgs_ "stack"
 
 -- | Stack exec command.
+--
+stackExec :: String -> [String] -> Action String
+stackExec cmd' args = stack $ "exec" : cmd' : "--" : args
+
+-- | Stack exec command without return.
 --
 stackExec_ :: String -> [String] -> Action ()
 stackExec_ cmd' args = stack_ $ "exec" : cmd' : "--" : args
