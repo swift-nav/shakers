@@ -362,8 +362,9 @@ shakeRules :: Rules ()
 shakeRules = do
   -- | clear
   --
-  phony "clear" $
-    forM_ [ fakeDir, metaDir ] $
+  phony "clear" $ do
+    dir <- mirrorDir
+    forM_ [ fakeDir, metaDir, dir ] $
       flip removeFilesAfter [ "//*" ]
 
   -- | clean
