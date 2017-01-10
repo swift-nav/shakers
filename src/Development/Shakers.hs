@@ -329,7 +329,7 @@ mirror :: [FilePattern] -> Rules ()
 mirror pats =
   fake' pats "mirror" $ mapM_ $ \file -> do
     dir <- mirrorDir
-    liftIO $ createDirectoryIfMissing True dir
+    liftIO $ createDirectoryIfMissing True $ dropFileName (dir </> file)
     copyFileChanged file (dir </> file)
 
 -- | Build a hash version from a directory and file pattern.
