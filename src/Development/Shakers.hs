@@ -24,13 +24,10 @@ module Development.Shakers
   , ssh_
   , sshDir
   , sshDir_
-  , touchFile
-  , copyFileChanged'
   , fake
   , fake'
   , meta
   , preprocess
-  , preprocess'
   , mirror
   , getHashedVersion
   , stackRules
@@ -184,27 +181,14 @@ sshDir_ host dir args = ssh_ host $ "cd" : dir : "&&" : args
 gitVersion :: Action String
 gitVersion = git [ "describe", "--tags", "--abbrev=0" ]
 
--- | Touch a file for fake files.
---
-touchFile :: FilePath -> Action ()
-touchFile = flip writeFile' mempty
-
--- | Copy a file if changed, creating parent directories.
---
-copyFileChanged' :: FilePath -> FilePath -> Action ()
-copyFileChanged' a b = do
-  liftIO $ createDirectoryIfMissing True $ dropFileName b
-  copyFileChanged a b
-
 -- | Use a fake file to keep track of the last time an file-free action ran.
 --
 fake :: [FilePattern] -> String -> ([FilePath] -> Action ()) -> Rules ()
 fake pats target act =
   fakeFile target %> \out -> do
     files <- getDirectoryFiles "." pats
-    need files
     act files
-    touchFile out
+    writeFile' out mempty
 
 -- | Wraps fake with a phony target.
 --
@@ -246,7 +230,8 @@ mirror :: [FilePattern] -> Rules ()
 mirror pats =
   fake' pats "mirror" $ mapM_ $ \file -> do
     dir <- mirrorDir
-    copyFileChanged' file $ dir </> file
+    liftIO $ createDirectoryIfMissing True dir
+    copyFileChanged file (dir </> file)
 
 -- | Build a hash version from a directory and file pattern.
 --
@@ -354,7 +339,7 @@ cabalRules file = do
 
   -- | cabal
   --
-  preprocess' file $ do
+  preprocess file (file <.> "m4") $ do
     need [ metaFile "gitVersion" ]
     version <- gitVersion
     return [ ("VERSION", version) ]
