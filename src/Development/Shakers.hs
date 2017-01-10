@@ -5,10 +5,13 @@
 --
 module Development.Shakers
   ( module Exports
+  , (<:>)
   , fakeFile
   , metaFile
   , mirrorDir
   , parentDir
+  , getVar
+  , getFlag
   , cmdArgs
   , cmdArgs_
   , cmdArgsDir
@@ -18,12 +21,23 @@ module Development.Shakers
   , stackExec
   , stackExec_
   , git
+  , git_
+  , gitDir
+  , gitDir_
+  , schemaApply_
   , m4
+  , aws
   , rsync_
   , ssh
   , ssh_
   , sshDir
   , sshDir_
+  , rmirror_
+  , rssh
+  , rssh_
+  , rdocker_
+  , docker_
+  , convox_
   , fake
   , fake'
   , meta
@@ -32,6 +46,7 @@ module Development.Shakers
   , getHashedVersion
   , stackRules
   , cabalRules
+  , dockerRules
   , shakeMain
   ) where
 
@@ -40,6 +55,11 @@ import Data.Char
 import Development.Shake          as Exports
 import Development.Shake.FilePath
 import System.Directory
+
+-- | Join strings with ":"
+--
+(<:>) :: (IsString m, Monoid m) => m -> m -> m
+(<:>) = (<>) . (<> ":")
 
 -- | File used for version change detection.
 --
@@ -86,6 +106,21 @@ parentDir = liftIO $ takeFileName <$> getCurrentDirectory
 mirrorDir :: Action FilePath
 mirrorDir = (buildDir </>) <$> parentDir
 
+-- | Wrapper around getting the environment that throws error.
+--
+getVar :: String -> Action String
+getVar k = getEnv k >>= maybe (liftIO $ throwIO $ userError $ "No env: " <> k) return
+
+-- | Wrapper round getting the environment that returns a bool if env is present.
+--
+getFlag :: String -> Action Bool
+getFlag k = isJust <$> getEnv k
+
+-- | Remove host env.
+--
+remoteVar :: Action String
+remoteVar = getVar "REMOTE"
+
 -- | Remove right excess on string.
 --
 rstrip :: String -> String
@@ -124,12 +159,12 @@ stack_ = cmdArgs_ "stack"
 -- | Stack exec command.
 --
 stackExec :: String -> [String] -> Action String
-stackExec cmd' args = stack $ "exec" : cmd' : "--" : args
+stackExec cmd' as = stack $ "exec" : cmd' : "--" : as
 
 -- | Stack exec command without return.
 --
 stackExec_ :: String -> [String] -> Action ()
-stackExec_ cmd' args = stack_ $ "exec" : cmd' : "--" : args
+stackExec_ cmd' as = stack_ $ "exec" : cmd' : "--" : as
 
 -- | Sylish command.
 --
@@ -146,10 +181,35 @@ lint_ = cmdArgs_ "hlint"
 git :: [String] -> Action String
 git = cmdArgs "git"
 
+-- | Git command without return.
+--
+git_ :: [String] -> Action ()
+git_ = cmdArgs_ "git"
+
+-- | Git command in a directory.
+--
+gitDir :: FilePath -> [String] -> Action String
+gitDir d = cmdArgsDir d "git"
+
+-- | Git command in a directory with no return.
+--
+gitDir_ :: FilePath -> [String] -> Action ()
+gitDir_ d = cmdArgsDir_ d "git"
+
+-- | Schema apply command.
+--
+schemaApply_ :: [String] -> Action ()
+schemaApply_ = cmdArgs_ "schema-apply"
+
 -- | m4 command.
 --
 m4 :: [String] -> Action String
 m4 = cmdArgs "m4"
+
+-- | AWS command.
+--
+aws :: [String] -> Action String
+aws = cmdArgs "aws"
 
 -- | Rsync command.
 --
@@ -159,22 +219,65 @@ rsync_ = cmdArgs_ "rsync"
 -- | SSH command.
 --
 ssh :: String -> [String] -> Action String
-ssh host args = cmdArgs "ssh" $ host : args
+ssh host as = cmdArgs "ssh" $ host : as
 
 -- | SSH command with no return.
 --
 ssh_ :: String -> [String] -> Action ()
-ssh_ host args = cmdArgs_ "ssh" $ host : args
+ssh_ host as = cmdArgs_ "ssh" $ host : as
 
 -- | SSH command in a remote directory.
 --
 sshDir :: String -> FilePath -> [String] -> Action String
-sshDir host dir args = ssh host $ "cd" : dir : "&&" : args
+sshDir host dir as = ssh host $ "cd" : dir : "&&" : as
 
 -- | SSH command in a remote directory with no return.
 --
 sshDir_ :: String -> FilePath -> [String] -> Action ()
-sshDir_ host dir args = ssh_ host $ "cd" : dir : "&&" : args
+sshDir_ host dir as = ssh_ host $ "cd" : dir : "&&" : as
+
+-- | Mirror directory remotely.
+--
+rmirror_ :: Action ()
+rmirror_ = do
+  r <- remoteVar
+  p <- parentDir
+  rsync_ [ "-Laz", "--delete", buildDir </> p <> "/", r <:> p <> "/" ]
+
+-- | Remote SSH command.
+--
+rssh :: [String] -> Action String
+rssh as = do
+  r <- remoteVar
+  p <- parentDir
+  sshDir r p as
+
+-- | Remote SSH command.
+--
+rssh_ :: [String] -> Action ()
+rssh_ as = do
+  r <- remoteVar
+  p <- parentDir
+  sshDir_ r p as
+
+-- | Run docker command remotely.
+--
+rdocker_ :: [String] -> Action ()
+rdocker_ = rssh_ . ("docker" :)
+
+-- | Run docker command in mirro dir.
+--
+docker_ :: [String] -> Action ()
+docker_ as = do
+  d <- mirrorDir
+  cmdArgsDir_ d "docker" as
+
+-- | Run convox command in mirro dir.
+--
+convox_ :: [String] -> Action ()
+convox_ as = do
+  d <- mirrorDir
+  cmdArgsDir_ d "convox" as
 
 -- | Git version.
 --
@@ -218,11 +321,6 @@ preprocess target file macros =
     macros' <- macros
     content <- m4 $ file : (uncurry f <$> macros')
     writeFileChanged out content
-
--- | Preprocess a file with m4, use default file name.
---
-preprocess' :: FilePath -> Action [(String, String)] -> Rules ()
-preprocess' file = preprocess file (file <.> "m4")
 
 -- | Mirror files to the mirror directory.
 --
@@ -350,6 +448,27 @@ cabalRules file = do
     need [ file ]
     stack_ [ "sdist" ]
     stack_ [ "upload", ".", "--no-signature" ]
+
+
+-- | Docker rules.
+--
+dockerRules :: [FilePattern] -> Rules ()
+dockerRules pats = do
+  -- | mirror
+  --
+  mirror pats
+
+  -- | docker:login
+  --
+  phony "docker:login" $ do
+    login <- aws [ "ecr", "get-login", "--region", "us-west-2" ]
+    unit $ cmd login
+
+  -- | docker:login-remote
+  --
+  phony "docker:login-remote" $ do
+    login <- aws [ "ecr", "get-login", "--region", "us-west-2" ]
+    rssh_ [ login ]
 
 -- | Main entry point.
 --
