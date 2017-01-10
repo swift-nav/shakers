@@ -46,6 +46,7 @@ module Development.Shakers
   , getHashedVersion
   , stackRules
   , cabalRules
+  , dbRules
   , dockerRules
   , shakeMain
   ) where
@@ -449,6 +450,14 @@ cabalRules file = do
     stack_ [ "sdist" ]
     stack_ [ "upload", ".", "--no-signature" ]
 
+-- | Database rules
+--
+dbRules :: Rules ()
+dbRules =
+  -- | schema:apply
+  --
+  phony "schema:apply" $
+    schemaApply_ [ "--dir", "schema/migrations" ]
 
 -- | Docker rules.
 --
