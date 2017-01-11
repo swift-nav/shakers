@@ -6,6 +6,7 @@
 module Development.Shakers
   ( module Exports
   , (<:>)
+  , buildFile
   , fakeFile
   , metaFile
   , mirrorDir
@@ -72,10 +73,15 @@ shakeFile = "Shakefile.hs"
 buildDir :: FilePath
 buildDir = ".build"
 
+-- | Build file path builder.
+--
+buildFile :: FilePath -> FilePath
+buildFile = (buildDir </>)
+
 -- | Build directory where "touch" files are kept.
 --
 fakeDir :: FilePath
-fakeDir = buildDir </> "fake"
+fakeDir = buildFile "fake"
 
 -- | Fake file path builder.
 --
@@ -85,7 +91,7 @@ fakeFile = (fakeDir </>)
 -- | Meta directory where "virtual" files are kept.
 --
 metaDir :: FilePath
-metaDir = buildDir </> "meta"
+metaDir = buildFile "meta"
 
 -- | Meta file path builder.
 --
@@ -105,7 +111,7 @@ parentDir = liftIO $ takeFileName <$> getCurrentDirectory
 -- | Mirror directory of current parent directory.
 --
 mirrorDir :: Action FilePath
-mirrorDir = (buildDir </>) <$> parentDir
+mirrorDir = buildFile <$> parentDir
 
 -- | Wrapper around getting the environment that throws error.
 --
@@ -243,7 +249,7 @@ rmirror_ :: Action ()
 rmirror_ = do
   r <- remoteVar
   p <- parentDir
-  rsync_ [ "-Laz", "--delete", buildDir </> p <> "/", r <:> p <> "/" ]
+  rsync_ [ "-Laz", "--delete", buildFile p <> "/", r <:> p <> "/" ]
 
 -- | Remote SSH command.
 --
