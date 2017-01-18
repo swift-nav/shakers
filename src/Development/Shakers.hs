@@ -387,52 +387,52 @@ shakeRules = do
 
 -- | Stack rules.
 --
-stackRules :: [FilePattern] -> Rules ()
-stackRules pats = do
+stackRules :: String -> [FilePattern] -> Rules ()
+stackRules target pats = do
   -- | build
   --
   fake' pats "build" $ const $
-    stack_ [ "build", "--fast" ]
+    stack_ [ "build", target, "--fast" ]
 
   -- | build-error
   --
   fake' pats "build-error" $ const $
-    stack_ [ "build", "--fast", "--ghc-options=-Werror" ]
+    stack_ [ "build", target, "--fast", "--ghc-options=-Werror" ]
 
   -- | build-tests
   --
   fake' pats "build-tests" $ const $
-    stack_ [ "build", "--fast", "--test", "--no-run-tests" ]
+    stack_ [ "build", target, "--fast", "--test", "--no-run-tests" ]
 
   -- | build-tests-error
   --
   fake' pats "build-tests-error" $ const $
-    stack_ [ "build", "--fast", "--test", "--no-run-tests", "--ghc-options=-Werror" ]
+    stack_ [ "build", target, "--fast", "--test", "--no-run-tests", "--ghc-options=-Werror" ]
 
   -- | install
   --
   fake' pats "install" $ const $
-    stack_ [ "build", "--fast", "--copy-bins" ]
+    stack_ [ "build", target, "--fast", "--copy-bins" ]
 
   -- | tests
   --
   phony "tests" $
-    stack_ [ "build", "--fast", "--test" ]
+    stack_ [ "build", target, "--fast", "--test" ]
 
   -- | tests-error
   --
   phony "tests-error" $
-    stack_ [ "build", "--fast", "--test", "--ghc-options=-Werror" ]
+    stack_ [ "build", target, "--fast", "--test", "--ghc-options=-Werror" ]
 
   -- | ghci
   --
   phony "ghci" $
-    stack_ [ "ghci", "--fast" ]
+    stack_ [ "ghci", target, "--fast" ]
 
   -- | ghci-tests
   --
   phony "ghci-tests" $
-    stack_ [ "ghci", "--fast", "--test" ]
+    stack_ [ "ghci", target, "--fast", "--test" ]
 
 -- | Cabal and hackage rules.
 --
