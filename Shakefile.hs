@@ -21,17 +21,21 @@ main = shakeMain $ do
         , "src//*.hs"
         ]
 
+  -- | Haskell rules.
+  --
+  hsRules "."
+
   -- | Cabal rules.
   --
-  cabalRules "shakers.cabal"
+  cabalRules "." "shakers.cabal"
 
   -- | Stack rules.
   --
-  stackRules pats
+  stackRules "." pats
 
   -- | sanity
   --
-  fake' pats "sanity" $ const $
+  fake "." pats "sanity" $ const $
     need [ fakeFile "build-error", fakeFile "lint" ]
 
   -- | Default things to run.

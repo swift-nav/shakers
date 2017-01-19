@@ -23,8 +23,6 @@ module Development.Shakers
   , stackExec_
   , git
   , git_
-  , gitDir
-  , gitDir_
   , schemaApply_
   , m4
   , aws
@@ -40,11 +38,11 @@ module Development.Shakers
   , docker_
   , convox_
   , fake
-  , fake'
   , meta
   , preprocess
   , mirror
   , getHashedVersion
+  , hsRules
   , stackRules
   , stackTargetRules
   , cabalRules
@@ -99,11 +97,6 @@ metaDir = buildFile "meta"
 metaFile :: FilePath -> FilePath
 metaFile = (metaDir </>)
 
--- | Location of stack's work files.
---
-stackDir :: FilePath
-stackDir = ".stack-work"
-
 -- | Parent directory.
 --
 parentDir :: Action FilePath
@@ -156,23 +149,23 @@ cmdArgsDir_ d c as = unit $ cmd (Cwd d) c as
 
 -- | Stack command without return.
 --
-stack :: [String] -> Action String
-stack = cmdArgs "stack"
+stack :: FilePath -> [String] -> Action String
+stack d = cmdArgsDir d "stack"
 
 -- | Stack command without return.
 --
-stack_ :: [String] -> Action ()
-stack_ = cmdArgs_ "stack"
+stack_ :: FilePath -> [String] -> Action ()
+stack_ d = cmdArgsDir_ d "stack"
 
 -- | Stack exec command.
 --
-stackExec :: String -> [String] -> Action String
-stackExec cmd' as = stack $ "exec" : cmd' : "--" : as
+stackExec :: FilePath -> String -> [String] -> Action String
+stackExec d cmd' as = stack d $ "exec" : cmd' : "--" : as
 
 -- | Stack exec command without return.
 --
-stackExec_ :: String -> [String] -> Action ()
-stackExec_ cmd' as = stack_ $ "exec" : cmd' : "--" : as
+stackExec_ :: FilePath -> String -> [String] -> Action ()
+stackExec_ d cmd' as = stack_ d $ "exec" : cmd' : "--" : as
 
 -- | Sylish command.
 --
@@ -184,30 +177,20 @@ stylish_ = cmdArgs_ "stylish-haskell"
 lint_ :: [String] -> Action ()
 lint_ = cmdArgs_ "hlint"
 
--- | Git command.
---
-git :: [String] -> Action String
-git = cmdArgs "git"
-
--- | Git command without return.
---
-git_ :: [String] -> Action ()
-git_ = cmdArgs_ "git"
-
 -- | Git command in a directory.
 --
-gitDir :: FilePath -> [String] -> Action String
-gitDir d = cmdArgsDir d "git"
+git :: FilePath -> [String] -> Action String
+git d = cmdArgsDir d "git"
 
 -- | Git command in a directory with no return.
 --
-gitDir_ :: FilePath -> [String] -> Action ()
-gitDir_ d = cmdArgsDir_ d "git"
+git_ :: FilePath -> [String] -> Action ()
+git_ d = cmdArgsDir_ d "git"
 
 -- | Schema apply command.
 --
-schemaApply_ :: [String] -> Action ()
-schemaApply_ = cmdArgs_ "schema-apply"
+schemaApply_ :: FilePath -> [String] -> Action ()
+schemaApply_ d = cmdArgsDir_ d "schema-apply"
 
 -- | m4 command.
 --
@@ -227,22 +210,22 @@ rsync_ = cmdArgs_ "rsync"
 -- | SSH command.
 --
 ssh :: String -> [String] -> Action String
-ssh host as = cmdArgs "ssh" $ host : as
+ssh h as = cmdArgs "ssh" $ h : as
 
 -- | SSH command with no return.
 --
 ssh_ :: String -> [String] -> Action ()
-ssh_ host as = cmdArgs_ "ssh" $ host : as
+ssh_ h as = cmdArgs_ "ssh" $ h : as
 
 -- | SSH command in a remote directory.
 --
 sshDir :: String -> FilePath -> [String] -> Action String
-sshDir host dir as = ssh host $ "cd" : dir : "&&" : as
+sshDir h d as = ssh h $ "cd" : d : "&&" : as
 
 -- | SSH command in a remote directory with no return.
 --
 sshDir_ :: String -> FilePath -> [String] -> Action ()
-sshDir_ host dir as = ssh_ host $ "cd" : dir : "&&" : as
+sshDir_ h d as = ssh_ h $ "cd" : d : "&&" : as
 
 -- | Mirror directory remotely.
 --
@@ -289,23 +272,22 @@ convox_ as = do
 
 -- | Git version.
 --
-gitVersion :: Action String
-gitVersion = git [ "describe", "--tags", "--abbrev=0" ]
+gitVersion :: FilePath -> Action String
+gitVersion d = git d [ "describe", "--tags", "--abbrev=0" ]
 
 -- | Use a fake file to keep track of the last time an file-free action ran.
 --
-fake :: [FilePattern] -> String -> ([FilePath] -> Action ()) -> Rules ()
-fake pats target act =
-  fakeFile target %> \out -> do
-    files <- getDirectoryFiles "." pats
-    act files
-    writeFile' out mempty
+fake :: FilePath -> [FilePattern] -> String -> ([FilePath] -> Action ()) -> Rules ()
+fake dir pats target act = do
+  meta target $
+    getDirectoryFiles dir pats >>=
+      liftIO . getHashedShakeVersion
 
--- | Wraps fake with a phony target.
---
-fake' :: [FilePattern] -> String -> ([FilePath] -> Action ()) -> Rules ()
-fake' pats target act = do
-  fake pats target act
+  fakeFile target %> \out -> do
+    need [ metaFile target ]
+    getDirectoryFiles dir pats >>=
+      act
+    writeFile' out mempty
 
   phony target $
     need [ fakeFile target ]
@@ -332,12 +314,12 @@ preprocess target file macros =
 
 -- | Mirror files to the mirror directory.
 --
-mirror :: [FilePattern] -> Rules ()
-mirror pats =
-  fake' pats "mirror" $ mapM_ $ \file -> do
-    dir <- mirrorDir
-    liftIO $ createDirectoryIfMissing True $ dropFileName (dir </> file)
-    copyFileChanged file (dir </> file)
+mirror :: FilePath -> [FilePattern] -> Rules ()
+mirror dir pats =
+  fake dir pats "mirror" $ mapM_ $ \file -> do
+    dir' <- mirrorDir
+    liftIO $ createDirectoryIfMissing True $ dropFileName (dir' </> file)
+    copyFileChanged file (dir' </> file)
 
 -- | Build a hash version from a directory and file pattern.
 --
@@ -346,183 +328,180 @@ getHashedVersion dir pats = do
   files <- getDirectoryFiles dir pats
   liftIO $ getHashedShakeVersion $ (dir </>) <$> files
 
+-- | Built-in rules.
+--
+shakeRules :: Rules ()
+shakeRules =
+  -- | clear
+  --
+  phony "clear" $
+    removeFilesAfter buildDir [ "//*" ]
+
 -- | Haskell source rules
 --
-hsRules :: Rules ()
-hsRules = do
+hsRules :: FilePath -> Rules ()
+hsRules dir = do
   let pats = [ "//*.hs" ]
 
   -- | format
   --
-  fake' pats "format" $ \files -> do
+  fake dir pats "format" $ \files -> do
     need [ ".stylish-haskell.yaml" ]
     stylish_ $ [ "-c", ".stylish-haskell.yaml", "-i" ] <> files
 
   -- | lint
   --
-  fake' pats "lint" $ \files ->
+  fake dir pats "lint" $ \files ->
     lint_ files
-
--- | Built-in rules.
---
-shakeRules :: Rules ()
-shakeRules = do
-  -- | clear
-  --
-  phony "clear" $ do
-    dir <- mirrorDir
-    forM_ [ fakeDir, metaDir, dir ] $
-      flip removeFilesAfter [ "//*" ]
-
-  -- | clean
-  --
-  phony "clean" $ do
-    stack_ [ "clean" ]
-    removeFilesAfter buildDir [ "//*" ]
-
-  -- | clobber
-  --
-  phony "clobber" $
-    forM_ [ buildDir, stackDir ] $
-      flip removeFilesAfter [ "//*" ]
 
 -- | Stack rules.
 --
-stackRules :: [FilePattern] -> Rules ()
-stackRules pats = do
+stackRules :: FilePath -> [FilePattern] -> Rules ()
+stackRules dir pats = do
   -- | build
   --
-  fake' pats "build" $ const $
-    stack_ [ "build", "--fast" ]
+  fake dir pats "build" $ const $
+    stack_ dir [ "build", "--fast" ]
 
   -- | build-error
   --
-  fake' pats "build-error" $ const $
-    stack_ [ "build", "--fast", "--ghc-options=-Werror" ]
+  fake dir pats "build-error" $ const $
+    stack_ dir [ "build", "--fast", "--ghc-options=-Werror" ]
 
   -- | build-tests
   --
-  fake' pats "build-tests" $ const $
-    stack_ [ "build", "--fast", "--test", "--no-run-tests" ]
+  fake dir pats "build-tests" $ const $
+    stack_ dir [ "build", "--fast", "--test", "--no-run-tests" ]
 
   -- | build-tests-error
   --
-  fake' pats "build-tests-error" $ const $
-    stack_ [ "build", "--fast", "--test", "--no-run-tests", "--ghc-options=-Werror" ]
+  fake dir pats "build-tests-error" $ const $
+    stack_ dir [ "build", "--fast", "--test", "--no-run-tests", "--ghc-options=-Werror" ]
 
   -- | install
   --
-  fake' pats "install" $ const $
-    stack_ [ "build", "--fast", "--copy-bins" ]
+  fake dir pats "install" $ const $
+    stack_ dir [ "build", "--fast", "--copy-bins" ]
 
   -- | tests
   --
   phony "tests" $
-    stack_ [ "build", "--fast", "--test" ]
+    stack_ dir [ "build", "--fast", "--test" ]
 
   -- | tests-error
   --
   phony "tests-error" $
-    stack_ [ "build", "--fast", "--test", "--ghc-options=-Werror" ]
+    stack_ dir [ "build", "--fast", "--test", "--ghc-options=-Werror" ]
 
   -- | ghci
   --
   phony "ghci" $
-    stack_ [ "ghci", "--fast" ]
+    stack_ dir [ "ghci", "--fast" ]
 
   -- | ghci-tests
   --
   phony "ghci-tests" $
-    stack_ [ "ghci", "--fast", "--test" ]
+    stack_ dir [ "ghci", "--fast", "--test" ]
+
+  -- | clean
+  --
+  phony "clean" $ do
+    need [ "clear" ]
+    stack_ dir [ "clean" ]
+
+  -- | clobber
+  --
+  phony "clobber" $ do
+    need [ "clear" ]
+    removeFilesAfter dir [ "//*.stack-work" ]
 
 -- | Stack rules.
 --
-stackTargetRules :: String -> [FilePattern] -> Rules ()
-stackTargetRules target pats = do
+stackTargetRules :: FilePath -> String -> [FilePattern] -> Rules ()
+stackTargetRules dir target pats = do
   -- | build
   --
-  fake' pats ("build:" <> target) $ const $
-    stack_ [ "build", target, "--fast" ]
+  fake dir pats ("build:" <> target) $ const $
+    stack_ dir [ "build", target, "--fast" ]
 
   -- | build-error
   --
-  fake' pats ("build-error:" <> target) $ const $
-    stack_ [ "build", target, "--fast", "--ghc-options=-Werror" ]
+  fake dir pats ("build-error:" <> target) $ const $
+    stack_ dir [ "build", target, "--fast", "--ghc-options=-Werror" ]
 
   -- | build-tests
   --
-  fake' pats ("build-tests:" <> target) $ const $
-    stack_ [ "build", target, "--fast", "--test", "--no-run-tests" ]
+  fake dir pats ("build-tests:" <> target) $ const $
+    stack_ dir [ "build", target, "--fast", "--test", "--no-run-tests" ]
 
   -- | build-tests-error
   --
-  fake' pats ("build-tests-error:" <> target) $ const $
-    stack_ [ "build", target, "--fast", "--test", "--no-run-tests", "--ghc-options=-Werror" ]
+  fake dir pats ("build-tests-error:" <> target) $ const $
+    stack_ dir [ "build", target, "--fast", "--test", "--no-run-tests", "--ghc-options=-Werror" ]
 
   -- | install
   --
-  fake' pats ("install:" <> target) $ const $
-    stack_ [ "build", target, "--fast", "--copy-bins" ]
+  fake dir pats ("install:" <> target) $ const $
+    stack_ dir [ "build", target, "--fast", "--copy-bins" ]
 
   -- | tests
   --
   phony ("tests:" <> target) $
-    stack_ [ "build", target, "--fast", "--test" ]
+    stack_ dir [ "build", target, "--fast", "--test" ]
 
   -- | tests-error
   --
   phony ("tests-error:" <> target) $
-    stack_ [ "build", target, "--fast", "--test", "--ghc-options=-Werror" ]
+    stack_ dir [ "build", target, "--fast", "--test", "--ghc-options=-Werror" ]
 
   -- | ghci
   --
   phony ("ghci:" <> target) $
-    stack_ [ "ghci", target, "--fast" ]
+    stack_ dir [ "ghci", target, "--fast" ]
 
   -- | ghci-tests
   --
   phony ("ghci-tests:" <> target) $
-    stack_ [ "ghci", target, "--fast", "--test" ]
+    stack_ dir [ "ghci", target, "--fast", "--test" ]
 
 -- | Cabal and hackage rules.
 --
-cabalRules :: FilePath -> Rules ()
-cabalRules file = do
+cabalRules :: FilePath -> FilePath -> Rules ()
+cabalRules dir file = do
   -- | "gitVersion"
   --
-  meta "gitVersion"
-    gitVersion
+  meta "cabalVersion" $ gitVersion dir
 
   -- | cabal
   --
   preprocess file (file <.> "m4") $ do
-    need [ metaFile "gitVersion" ]
-    version <- gitVersion
+    need [ metaFile "cabalVersion" ]
+    version <- gitVersion dir
     return [ ("VERSION", version) ]
 
   -- | publish
   --
   phony "publish" $ do
     need [ file ]
-    stack_ [ "sdist" ]
-    stack_ [ "upload", ".", "--no-signature" ]
+    stack_ dir [ "sdist", dir ]
+    stack_ dir [ "upload", dir, "--no-signature" ]
 
 -- | Database rules
 --
-dbRules :: Rules ()
-dbRules =
+dbRules :: FilePath -> Rules ()
+dbRules dir =
   -- | schema:apply
   --
   phony "schema:apply" $
-    schemaApply_ [ "--dir", "schema/migrations" ]
+    schemaApply_ dir [ "--dir", "schema/migrations" ]
 
 -- | Docker rules.
 --
-dockerRules :: [FilePattern] -> Rules ()
-dockerRules pats = do
+dockerRules :: FilePath -> [FilePattern] -> Rules ()
+dockerRules dir pats = do
   -- | mirror
   --
-  mirror pats
+  mirror dir pats
 
   -- | docker:login
   --
@@ -543,5 +522,4 @@ shakeMain act = do
   version <- getHashedShakeVersion [ shakeFile ]
   shakeArgs shakeOptions { shakeFiles = buildDir, shakeVersion = version, shakeThreads = 0 } $ do
     shakeRules
-    hsRules
     act
