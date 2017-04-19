@@ -503,6 +503,12 @@ dockerRules dir pats = do
   --
   mirror dir pats
 
+  -- | wipe
+  --
+  phony "wipe" $ do
+    dir' <- mirrorDir
+    liftIO $ removeFiles dir' [ "//*" ]
+
   -- | docker:login
   --
   phony "docker:login" $ do
