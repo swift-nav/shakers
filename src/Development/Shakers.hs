@@ -40,7 +40,6 @@ module Development.Shakers
   , fake
   , meta
   , preprocess
-  , mirror
   , getHashedVersion
   , hsRules
   , stackRules
@@ -306,20 +305,11 @@ meta target act =
 preprocess :: FilePattern -> FilePath -> Action [(String, String)] -> Rules ()
 preprocess target file macros =
   target %> \out -> do
-    need [ file ]
+    alwaysRerun
     let f k v = "-D" <> k <> "=" <> v
     macros' <- macros
     content <- m4 $ file : (uncurry f <$> macros')
     writeFileChanged out content
-
--- | Mirror files to the mirror directory.
---
-mirror :: FilePath -> [FilePattern] -> Rules ()
-mirror dir pats =
-  fake dir pats "mirror" $ mapM_ $ \file -> do
-    dir' <- mirrorDir
-    liftIO $ createDirectoryIfMissing True $ dropFileName (dir' </> file)
-    copyFileChanged file (dir' </> file)
 
 -- | Build a hash version from a directory and file pattern.
 --
@@ -501,13 +491,14 @@ dockerRules :: FilePath -> [FilePattern] -> Rules ()
 dockerRules dir pats = do
   -- | mirror
   --
-  mirror dir pats
-
-  -- | wipe
-  --
-  phony "wipe" $ do
+  phony "mirror" $ do
     dir' <- mirrorDir
     liftIO $ removeFiles dir' [ "//*" ]
+    files <- getDirectoryFiles dir pats
+    forM_ files $ \file ->
+      liftIO $ do
+        createDirectoryIfMissing True $ dropFileName (dir' </> file)
+        copyFile file (dir' </> file)
 
   -- | docker:login
   --
