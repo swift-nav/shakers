@@ -1,5 +1,5 @@
 name:                  shakers
-version:               0.0.18
+version:               0.0.19
 synopsis:              Shake helpers.
 description:           Primitive helpers for Shake files.
 homepage:              https://github.com/swift-nav/shakers
