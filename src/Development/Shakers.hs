@@ -6,6 +6,7 @@
 module Development.Shakers
   ( module Exports
   , (<:>)
+  , timestamp
   , buildFile
   , fakeFile
   , metaFile
@@ -29,8 +30,12 @@ module Development.Shakers
   , rsync_
   , ssh
   , ssh_
+  , sshScreen
+  , sshScreen_
   , sshDir
   , sshDir_
+  , sshScreenDir
+  , sshScreenDir_
   , rmirror_
   , rssh
   , rssh_
@@ -60,6 +65,11 @@ import System.Directory
 --
 (<:>) :: (IsString m, Monoid m) => m -> m -> m
 (<:>) = (<>) . (<> ":")
+
+-- | Unix timestamp.
+--
+timestamp :: Action String
+timestamp = cmdArgs "date" [ "+%s" ]
 
 -- | File used for version change detection.
 --
@@ -216,6 +226,20 @@ ssh h as = cmdArgs "ssh" $ h : as
 ssh_ :: String -> [String] -> Action ()
 ssh_ h as = cmdArgs_ "ssh" $ h : as
 
+-- | SSH command with screen.
+--
+sshScreen :: String -> [String] -> Action String
+sshScreen h as = do
+  t <- timestamp
+  ssh h $ "-t" : "screen" : "-S" : t : as
+
+-- | SSH command with screen no return.
+--
+sshScreen_ :: String -> [String] -> Action ()
+sshScreen_ h as = do
+  t <- timestamp
+  ssh_ h $ "-t" : "screen" : "-S" : t : as
+
 -- | SSH command in a remote directory.
 --
 sshDir :: String -> FilePath -> [String] -> Action String
@@ -225,6 +249,16 @@ sshDir h d as = ssh h $ "cd" : d : "&&" : as
 --
 sshDir_ :: String -> FilePath -> [String] -> Action ()
 sshDir_ h d as = ssh_ h $ "cd" : d : "&&" : as
+
+-- | SSH command with screen in a remote directory.
+--
+sshScreenDir :: String -> FilePath -> [String] -> Action String
+sshScreenDir h d as = sshScreen h $ "cd" : d : "&&" : as
+
+-- | SSH command with screen in a remote directory with no return.
+--
+sshScreenDir_ :: String -> FilePath -> [String] -> Action ()
+sshScreenDir_ h d as = sshScreen_ h $ "cd" : d : "&&" : as
 
 -- | Mirror directory remotely.
 --
