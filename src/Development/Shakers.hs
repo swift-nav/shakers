@@ -39,7 +39,10 @@ module Development.Shakers
   , rmirror_
   , rssh
   , rssh_
+  , rsshScreen
+  , rsshScreen_
   , rdocker_
+  , rdockerScreen_
   , docker_
   , convox_
   , fake
@@ -276,7 +279,15 @@ rssh as = do
   p <- parentDir
   sshDir r p as
 
--- | Remote SSH command.
+-- | Remote SSH screen command.
+--
+rsshScreen :: [String] -> Action String
+rsshScreen as = do
+  r <- remoteVar
+  p <- parentDir
+  sshScreenDir r p as
+
+-- | Remote SSH command with no return.
 --
 rssh_ :: [String] -> Action ()
 rssh_ as = do
@@ -284,10 +295,23 @@ rssh_ as = do
   p <- parentDir
   sshDir_ r p as
 
+-- | Remote SSH command with no return.
+--
+rsshScreen_ :: [String] -> Action ()
+rsshScreen_ as = do
+  r <- remoteVar
+  p <- parentDir
+  sshScreenDir_ r p as
+
 -- | Run docker command remotely.
 --
 rdocker_ :: [String] -> Action ()
 rdocker_ = rssh_ . ("docker" :)
+
+-- | Run docker command remotely.
+--
+rdockerScreen_ :: [String] -> Action ()
+rdockerScreen_ = rsshScreen_ . ("docker" :)
 
 -- | Run docker command in mirro dir.
 --
