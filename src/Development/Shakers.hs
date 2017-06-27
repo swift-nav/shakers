@@ -32,10 +32,6 @@ module Development.Shakers
   , ssh_
   , sshScreen
   , sshScreen_
-  , sshDir
-  , sshDir_
-  , sshScreenDir
-  , sshScreenDir_
   , rmirror_
   , rssh
   , rssh_
@@ -243,26 +239,6 @@ sshScreen_ h as = do
   t <- timestamp
   ssh_ h $ "-t" : "screen" : "-S" : t : as
 
--- | SSH command in a remote directory.
---
-sshDir :: String -> FilePath -> [String] -> Action String
-sshDir h d as = ssh h $ "cd" : d : "&&" : as
-
--- | SSH command in a remote directory with no return.
---
-sshDir_ :: String -> FilePath -> [String] -> Action ()
-sshDir_ h d as = ssh_ h $ "cd" : d : "&&" : as
-
--- | SSH command with screen in a remote directory.
---
-sshScreenDir :: String -> FilePath -> [String] -> Action String
-sshScreenDir h d as = sshScreen h $ "cd" : d : "&&" : as
-
--- | SSH command with screen in a remote directory with no return.
---
-sshScreenDir_ :: String -> FilePath -> [String] -> Action ()
-sshScreenDir_ h d as = sshScreen_ h $ "cd" : d : "&&" : as
-
 -- | Mirror directory remotely.
 --
 rmirror_ :: Action ()
@@ -276,32 +252,28 @@ rmirror_ = do
 rssh :: [String] -> Action String
 rssh as = do
   r <- remoteVar
-  p <- parentDir
-  sshDir r p as
+  ssh r as
 
 -- | Remote SSH screen command.
 --
 rsshScreen :: [String] -> Action String
 rsshScreen as = do
   r <- remoteVar
-  p <- parentDir
-  sshScreenDir r p as
+  sshScreen r as
 
 -- | Remote SSH command with no return.
 --
 rssh_ :: [String] -> Action ()
 rssh_ as = do
   r <- remoteVar
-  p <- parentDir
-  sshDir_ r p as
+  ssh_ r as
 
 -- | Remote SSH command with no return.
 --
 rsshScreen_ :: [String] -> Action ()
 rsshScreen_ as = do
   r <- remoteVar
-  p <- parentDir
-  sshScreenDir_ r p as
+  sshScreen_ r as
 
 -- | Run docker command remotely.
 --
