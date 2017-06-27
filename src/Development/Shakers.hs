@@ -68,7 +68,7 @@ import System.Directory
 -- | Unix timestamp.
 --
 timestamp :: Action String
-timestamp = cmdArgs "date" [ "+%s" ]
+timestamp = cmdArgs "date" [ "-u", "+%Y-%m-%dT%H:%M:%SZ" ]
 
 -- | File used for version change detection.
 --
