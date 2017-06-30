@@ -1,6 +1,1 @@
-resolver: lts-6.25
-packages:
-- .
-flags: {}
-extra-deps: []
-
+stack-lts-6.yaml
