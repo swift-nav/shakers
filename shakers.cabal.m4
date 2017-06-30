@@ -17,7 +17,7 @@ library
   exposed-modules:     Development.Shakers
   default-language:    Haskell2010
   ghc-options:         -Wall
-  build-depends:       base          >= 4.8
+  build-depends:       base          >= 4.8    && < 5
                      , basic-prelude >= 0.5.2
                      , directory     >= 1.2.2
                      , shake         >= 0.15.5
