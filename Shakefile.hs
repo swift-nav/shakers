@@ -16,11 +16,11 @@ import Development.Shakers
 main :: IO ()
 main = shakeMain $ do
   let pats =
-        [ "stack.yaml"
+        [ "stack*.yaml"
         , "Shakefile.hs"
         , "src//*.hs"
         ]
-      pats' = delete "stack.yaml" pats
+      pats' = delete "stack*.yaml" pats
 
   -- | Haskell rules.
   --
