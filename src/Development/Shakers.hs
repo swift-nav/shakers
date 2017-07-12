@@ -359,10 +359,8 @@ shakeRules =
 
 -- | Haskell source rules
 --
-hsRules :: FilePath -> Rules ()
-hsRules dir = do
-  let pats = [ "//*.hs" ]
-
+hsRules :: FilePath -> [FilePattern] -> Rules ()
+hsRules dir pats = do
   -- | format
   --
   fake dir pats "format" $ \files -> do
@@ -503,7 +501,6 @@ cabalRules dir file = do
   --
   phony "publish" $ do
     need [ file ]
-    stack_ dir [ "sdist", dir ]
     stack_ dir [ "upload", dir, "--no-signature" ]
 
 -- | Database rules
