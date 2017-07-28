@@ -1,6 +1,4 @@
 resolver: lts-6.35
 packages:
 - .
-flags: {}
-extra-deps: []
 pvp-bounds: lower

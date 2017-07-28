@@ -1,6 +1,4 @@
-resolver: lts-8.22
+resolver: lts-8.24
 packages:
 - .
-flags: {}
-extra-deps: []
 pvp-bounds: lower
