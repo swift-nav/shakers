@@ -6,6 +6,8 @@
 module Development.Shakers
   ( module Exports
   , (<:>)
+  , (<->)
+  , (<=>)
   , timestamp
   , buildFile
   , fakeFile
@@ -55,15 +57,27 @@ module Development.Shakers
   ) where
 
 import BasicPrelude               as Exports hiding ((*>))
+import Control.DeepSeq
 import Data.Char
 import Development.Shake          as Exports
 import Development.Shake.FilePath
 import System.Directory
+import Text.Regex
 
 -- | Join strings with ":"
 --
 (<:>) :: (IsString m, Monoid m) => m -> m -> m
 (<:>) = (<>) . (<> ":")
+
+-- | Join strings with "-"
+--
+(<->) :: (IsString m, Monoid m) => m -> m -> m
+(<->) = (<>) . (<> "-")
+
+-- | Join strings with "="
+--
+(<=>) :: (IsString m, Monoid m) => m -> m -> m
+(<=>) = (<>) . (<> "=")
 
 -- | Unix timestamp.
 --
@@ -205,6 +219,11 @@ schemaApply_ d = cmdArgsDir_ d "schema-apply"
 m4 :: [String] -> Action String
 m4 = cmdArgs "m4"
 
+-- | tar command.
+--
+tar_ :: FilePath -> [String] -> Action ()
+tar_ d = cmdArgsDir_ d "tar"
+
 -- | AWS command.
 --
 aws :: [String] -> Action String
@@ -336,7 +355,7 @@ preprocess :: FilePattern -> FilePath -> Action [(String, String)] -> Rules ()
 preprocess target file macros =
   target %> \out -> do
     alwaysRerun
-    let f k v = "-D" <> k <> "=" <> v
+    let f k v = "-D" <> k <=> v
     macros' <- macros
     content <- m4 $ file : (uncurry f <$> macros')
     writeFileChanged out content
@@ -502,6 +521,25 @@ cabalRules dir file = do
   phony "publish" $ do
     need [ file ]
     stack_ dir [ "upload", dir, "--no-signature" ]
+
+  phony "publish-lower" $ do
+    need [file, metaFile "cabalVersion" ]
+    version <- gitVersion dir
+    yaml    <- fromMaybe "stack.yaml" <$> getEnv "STACK_YAML"
+    dist    <- stack dir [ "path", "--dist-dir" ]
+    stack_ dir [ "sdist", dir, "--pvp-bounds", "lower" ]
+    let pkg = dropExtension file
+        hkg = pkg <-> version
+    [sdist] <- getDirectoryFiles dist [ hkg <.> "tar.gz" ]
+    withTempDir $ \d -> do
+      tar_ dist [ "xzf", sdist, "-C", d ]
+      let e = d </> hkg
+          f = e </> file
+      contents <- readFile' f
+      let contents' = subRegex (mkRegex $ pkg <> " >=" <> version) contents pkg
+      contents' `deepseq` writeFile' f contents'
+      copyFile' yaml $ e </> yaml
+      stack_ e [ "upload", e, "--no-signature" ]
 
 -- | Database rules
 --
