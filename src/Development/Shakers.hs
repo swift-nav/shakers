@@ -524,7 +524,7 @@ cabalRules dir file = do
 
   phony "publish-lower" $ do
     need [file, metaFile "cabalVersion" ]
-    version <- gitVersion dir
+    version <- dropWhile (not . isDigit) <$> gitVersion dir
     yaml    <- fromMaybe "stack.yaml" <$> getEnv "STACK_YAML"
     dist    <- stack dir [ "path", "--dist-dir" ]
     stack_ dir [ "sdist", dir, "--pvp-bounds", "lower" ]
