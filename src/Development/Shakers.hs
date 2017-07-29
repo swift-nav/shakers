@@ -513,7 +513,7 @@ cabalRules dir file = do
   --
   preprocess file (file <.> "m4") $ do
     need [ metaFile "cabalVersion" ]
-    version <- gitVersion dir
+    version <- dropWhile (not . isDigit) <$> gitVersion dir
     return [ ("VERSION", version) ]
 
   -- | publish
