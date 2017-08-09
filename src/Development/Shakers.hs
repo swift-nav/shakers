@@ -132,7 +132,7 @@ mirrorDir = buildFile <$> parentDir
 -- | Wrapper around getting the environment that throws error.
 --
 getVar :: String -> Action String
-getVar k = getEnv k >>= maybe (liftIO $ throwIO $ userError $ "No env: " <> k) return
+getVar k = getEnv k >>= maybe (liftIO $ throwIO $ userError $ "No env: " <> k) pure
 
 -- | Wrapper round getting the environment that returns a bool if env is present.
 --
@@ -514,7 +514,7 @@ cabalRules dir file = do
   preprocess file (file <.> "m4") $ do
     need [ metaFile "cabalVersion" ]
     version <- dropWhile (not . isDigit) <$> gitVersion dir
-    return [ ("VERSION", version) ]
+    pure [ ("VERSION", version) ]
 
   -- | publish
   --
