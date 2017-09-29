@@ -574,7 +574,7 @@ dockerRules dir pats = do
   -- | docker:login-remote
   --
   phony "docker:login-remote" $ do
-    login <- aws [ "ecr", "get-login", "--no-include-email, ""--region", "us-west-2" ]
+    login <- aws [ "ecr", "get-login", "--no-include-email", "--region", "us-west-2" ]
     rssh_ [ login ]
 
 -- | Main entry point.
