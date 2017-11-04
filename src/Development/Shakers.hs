@@ -28,7 +28,6 @@ module Development.Shakers
   , git_
   , schemaApply_
   , m4
-  , tar_
   , aws
   , rsync_
   , ssh
@@ -58,10 +57,12 @@ module Development.Shakers
   ) where
 
 import BasicPrelude               as Exports hiding ((*>))
+import Control.DeepSeq
 import Data.Char
 import Development.Shake          as Exports
 import Development.Shake.FilePath
 import System.Directory
+import Text.Regex
 
 -- | Join strings with ":"
 --
@@ -520,6 +521,25 @@ cabalRules dir file = do
   phony "publish" $ do
     need [ file ]
     stack_ dir [ "upload", dir, "--no-signature" ]
+
+  phony "publish-lower" $ do
+    need [file, metaFile "cabalVersion" ]
+    version <- dropWhile (not . isDigit) <$> gitVersion dir
+    yaml    <- fromMaybe "stack.yaml" <$> getEnv "STACK_YAML"
+    dist    <- stack dir [ "path", "--dist-dir" ]
+    stack_ dir [ "sdist", dir, "--pvp-bounds", "lower" ]
+    let pkg = dropExtension file
+        hkg = pkg <-> version
+    [sdist] <- getDirectoryFiles dist [ hkg <.> "tar.gz" ]
+    withTempDir $ \d -> do
+      tar_ dist [ "xzf", sdist, "-C", d ]
+      let e = d </> hkg
+          f = e </> file
+      contents <- readFile' f
+      let contents' = subRegex (mkRegex $ pkg <> " >=" <> version) contents pkg
+      contents' `deepseq` writeFile' f contents'
+      copyFile' yaml $ e </> yaml
+      stack_ e [ "upload", e, "--no-signature" ]
 
 -- | Database rules
 --
