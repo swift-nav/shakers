@@ -520,7 +520,7 @@ cabalRules dir file = do
   --
   phony "publish" $ do
     need [ file ]
-    stack_ dir [ "upload", dir, "--no-signature" ]
+    stack_ dir [ "upload", dir, "--no-signature", "--ignore-check" ]
 
   phony "publish-lower" $ do
     need [file, metaFile "cabalVersion" ]
@@ -539,7 +539,7 @@ cabalRules dir file = do
       let contents' = subRegex (mkRegex $ pkg <> " >=" <> version) contents pkg
       contents' `deepseq` writeFile' f contents'
       copyFile' yaml $ e </> yaml
-      stack_ e [ "upload", e, "--no-signature" ]
+      stack_ e [ "upload", e, "--no-signature", "--ignore-check" ]
 
 -- | Database rules
 --
