@@ -22,11 +22,12 @@ before_install:
   - mkdir -p $HOME/.local/bin
   - export PATH=$HOME/.local/bin:$PATH
   - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C $HOME/.local/bin '*/stack'
+  - travis_retry curl -sL https://raw.github.com/ndmitchell/hlint/master/misc/travis.sh | sh -s .
+  - travis_retry curl -sL https://raw.github.com/ndmitchell/weeder/master/misc/travis.sh | sh -s .
 
 install:
   - stack update
   - stack setup
-  - stack install hlint weeder
 
 script:
   - ./Shakefile.hs sanity
