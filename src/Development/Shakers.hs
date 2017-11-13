@@ -199,6 +199,11 @@ stylish_ = cmdArgs_ "stylish-haskell"
 lint_ :: [String] -> Action ()
 lint_ = cmdArgs_ "hlint"
 
+-- | Weeder command.
+--
+weeder_ :: [String] -> Action ()
+weeder_ = cmdArgs_ "weeder"
+
 -- | Git command in a directory.
 --
 git :: FilePath -> [String] -> Action String
@@ -390,6 +395,11 @@ hsRules dir pats = do
   --
   fake dir pats "lint" $ \files ->
     lint_ files
+
+  -- | weed
+  --
+  fake dir pats "weed" $ const $
+    weeder_ [ dir, "--build" ]
 
 -- | Stack rules.
 --
