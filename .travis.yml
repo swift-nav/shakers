@@ -26,8 +26,7 @@ before_install:
 install:
   - stack update
   - stack setup
-  - travis_retry curl -sL https://raw.github.com/ndmitchell/hlint/master/misc/travis.sh | sh -s .
-  - travis_retry curl -sL https://raw.github.com/ndmitchell/weeder/master/misc/travis.sh | sh -s .
+  - stack install hlint weeder
 
 script:
   - ./Shakefile.hs sanity
