@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -57,6 +58,9 @@ module Development.Shakers
   ) where
 
 import BasicPrelude               as Exports hiding ((*>))
+#if MIN_VERSION_basic_prelude(0,7,0)
+import Control.Exception.Lifted
+#endif
 import Control.DeepSeq
 import Data.Char
 import Development.Shake          as Exports

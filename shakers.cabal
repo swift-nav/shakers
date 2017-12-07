@@ -21,6 +21,7 @@ library
                      , basic-prelude
                      , deepseq
                      , directory
+                     , lifted-base
                      , regex-compat
                      , shake
 
