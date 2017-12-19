@@ -447,12 +447,12 @@ stackRules dir pats = do
   -- | ghci
   --
   phony "ghci" $
-    stack_ dir [ "ghci", "--fast" ]
+    stack_ dir [ "ghci" ]
 
   -- | ghci-tests
   --
   phony "ghci-tests" $
-    stack_ dir [ "ghci", "--fast", "--test" ]
+    stack_ dir [ "ghci", "--test" ]
 
   -- | clean
   --
@@ -508,12 +508,12 @@ stackTargetRules dir target pats = do
   -- | ghci
   --
   phony ("ghci:" <> target) $
-    stack_ dir [ "ghci", target, "--fast" ]
+    stack_ dir [ "ghci", target ]
 
   -- | ghci-tests
   --
   phony ("ghci-tests:" <> target) $
-    stack_ dir [ "ghci", target, "--fast", "--test" ]
+    stack_ dir [ "ghci", target, "--test" ]
 
 -- | Cabal and hackage rules.
 --
