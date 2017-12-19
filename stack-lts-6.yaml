@@ -1,5 +1,0 @@
-resolver: lts-6.35
-packages:
-- .
-extra-deps:
-- foundation-0.0.10
