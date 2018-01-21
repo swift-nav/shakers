@@ -33,16 +33,13 @@ module Development.Shakers
   , rsync_
   , ssh
   , ssh_
-  , sshScreen
-  , sshScreen_
-  , rmirror_
+  , sshDir
+  , sshDir_
   , rssh
   , rssh_
-  , rsshScreen
-  , rsshScreen_
   , rdocker_
-  , rdockerScreen_
   , docker_
+  , xdocker_
   , convox_
   , fake
   , meta
@@ -147,6 +144,11 @@ getFlag k = isJust <$> getEnv k
 --
 remoteVar :: Action String
 remoteVar = getVar "REMOTE"
+
+-- | Remote flag.
+--
+remoteFlag :: Action Bool
+remoteFlag = getFlag "REMOTE"
 
 -- | Remove right excess on string.
 --
@@ -253,65 +255,36 @@ ssh h as = cmdArgs "ssh" $ h : as
 ssh_ :: String -> [String] -> Action ()
 ssh_ h as = cmdArgs_ "ssh" $ h : as
 
--- | SSH command with screen.
+-- | SSH command in a remote directory.
 --
-sshScreen :: String -> [String] -> Action String
-sshScreen h as = do
-  t <- timestamp
-  ssh h $ "-t" : "screen" : "-S" : t : as
+sshDir :: FilePath -> String -> [String] -> Action String
+sshDir d h as = cmdArgs "ssh" $ h : "cd" : d : "&&" : as
 
--- | SSH command with screen no return.
+-- | SSH command in a remote directory with no return.
 --
-sshScreen_ :: String -> [String] -> Action ()
-sshScreen_ h as = do
-  t <- timestamp
-  ssh_ h $ "-t" : "screen" : "-S" : t : as
-
--- | Mirror directory remotely.
---
-rmirror_ :: Action ()
-rmirror_ = do
-  r <- remoteVar
-  p <- parentDir
-  rsync_ [ "-Laz", "--delete", buildFile p <> "/", r <:> p <> "/" ]
+sshDir_ :: FilePath -> String -> [String] -> Action ()
+sshDir_ d h as = cmdArgs_ "ssh" $ h : "cd" : d : "&&" : as
 
 -- | Remote SSH command.
 --
 rssh :: [String] -> Action String
 rssh as = do
   r <- remoteVar
-  ssh r as
-
--- | Remote SSH screen command.
---
-rsshScreen :: [String] -> Action String
-rsshScreen as = do
-  r <- remoteVar
-  sshScreen r as
+  p <- parentDir
+  sshDir p r as
 
 -- | Remote SSH command with no return.
 --
 rssh_ :: [String] -> Action ()
 rssh_ as = do
   r <- remoteVar
-  ssh_ r as
-
--- | Remote SSH command with no return.
---
-rsshScreen_ :: [String] -> Action ()
-rsshScreen_ as = do
-  r <- remoteVar
-  sshScreen_ r as
+  p <- parentDir
+  sshDir_ p r as
 
 -- | Run docker command remotely.
 --
 rdocker_ :: [String] -> Action ()
 rdocker_ = rssh_ . ("docker" :)
-
--- | Run docker command remotely.
---
-rdockerScreen_ :: [String] -> Action ()
-rdockerScreen_ = rsshScreen_ . ("docker" :)
 
 -- | Run docker command in mirro dir.
 --
@@ -319,6 +292,13 @@ docker_ :: [String] -> Action ()
 docker_ as = do
   d <- mirrorDir
   cmdArgsDir_ d "docker" as
+
+-- | Run either local or remote docker based on remote env.
+--
+xdocker_ :: [String] -> Action ()
+xdocker_ as = do
+  ok <- remoteFlag
+  bool (docker_ as) (rdocker_ as) ok
 
 -- | Run convox command in mirro dir.
 --
@@ -579,6 +559,20 @@ dockerRules dir pats = do
         createDirectoryIfMissing True $ dropFileName (dir' </> file)
         copyFile file (dir' </> file)
 
+  -- | mirror-remote
+  --
+  phony "mirror-remote" $ do
+    need [ "mirror" ]
+    r <- remoteVar
+    p <- parentDir
+    rsync_ [ "-Laz", "--delete", buildFile p <> "/", r <:> p <> "/" ]
+
+  -- | mirrored
+  --
+  phony "mirrored" $ do
+    ok <- remoteFlag
+    need [ bool "mirror" "mirror-remote" ok ]
+
   -- | docker:login
   --
   phony "docker:login" $ do
@@ -590,6 +584,12 @@ dockerRules dir pats = do
   phony "docker:login-remote" $ do
     login <- aws [ "ecr", "get-login", "--no-include-email", "--region", "us-west-2" ]
     rssh_ [ login ]
+
+  -- | docker:logined
+  --
+  phony "docker:logined" $ do
+    ok <- remoteFlag
+    need [ bool "docker:login" "docker:login-remote" ok ]
 
 -- | Main entry point.
 --
