@@ -360,7 +360,7 @@ getHashedVersion dir pats = do
 --
 shakeRules :: Rules ()
 shakeRules =
-  -- | clear
+  -- clear
   --
   phony "clear" $
     removeFilesAfter buildDir [ "//*" ]
@@ -369,18 +369,18 @@ shakeRules =
 --
 hsRules :: FilePath -> [FilePattern] -> Rules ()
 hsRules dir pats = do
-  -- | format
+  -- format
   --
   fake dir pats "format" $ \files -> do
     need [ ".stylish-haskell.yaml" ]
     stylish_ $ [ "-c", ".stylish-haskell.yaml", "-i" ] <> files
 
-  -- | lint
+  -- lint
   --
   fake dir pats "lint" $ \files ->
     lint_ files
 
-  -- | weed
+  -- weed
   --
   fake dir pats "weed" $ const $
     weeder_ [ dir, "--build" ]
@@ -389,58 +389,63 @@ hsRules dir pats = do
 --
 stackRules :: FilePath -> [FilePattern] -> Rules ()
 stackRules dir pats = do
-  -- | build
+  -- build
   --
   fake dir pats "build" $ const $
     stack_ dir [ "build", "--fast" ]
 
-  -- | build-error
+  -- build-error
   --
   fake dir pats "build-error" $ const $
     stack_ dir [ "build", "--fast", "--ghc-options=-Werror" ]
 
-  -- | build-tests
+  -- build-tests
   --
   fake dir pats "build-tests" $ const $
     stack_ dir [ "build", "--fast", "--test", "--no-run-tests" ]
 
-  -- | build-tests-error
+  -- build-tests-error
   --
   fake dir pats "build-tests-error" $ const $
     stack_ dir [ "build", "--fast", "--test", "--no-run-tests", "--ghc-options=-Werror" ]
 
-  -- | install
+  -- install
   --
   fake dir pats "install" $ const $
     stack_ dir [ "build", "--fast", "--copy-bins" ]
 
-  -- | tests
+  -- tests
   --
   phony "tests" $
     stack_ dir [ "build", "--fast", "--test" ]
 
-  -- | tests-error
+  -- tests-error
   --
   phony "tests-error" $
     stack_ dir [ "build", "--fast", "--test", "--ghc-options=-Werror" ]
 
-  -- | ghci
+  -- repl
   --
-  phony "ghci" $
+  phony "repl" $
     stack_ dir [ "ghci" ]
 
-  -- | ghci-tests
+  -- repl-tests
   --
-  phony "ghci-tests" $
+  phony "repl-tests" $
     stack_ dir [ "ghci", "--test" ]
 
-  -- | clean
+  -- docs
+  --
+  phony "docs" $
+    stack_ dir [ "haddock" ]
+
+  -- clean
   --
   phony "clean" $ do
     need [ "clear" ]
     stack_ dir [ "clean" ]
 
-  -- | clobber
+  -- clobber
   --
   phony "clobber" $ do
     need [ "clear" ]
@@ -450,47 +455,47 @@ stackRules dir pats = do
 --
 stackTargetRules :: FilePath -> String -> [FilePattern] -> Rules ()
 stackTargetRules dir target pats = do
-  -- | build
+  -- build
   --
   fake dir pats ("build:" <> target) $ const $
     stack_ dir [ "build", target, "--fast" ]
 
-  -- | build-error
+  -- build-error
   --
   fake dir pats ("build-error:" <> target) $ const $
     stack_ dir [ "build", target, "--fast", "--ghc-options=-Werror" ]
 
-  -- | build-tests
+  -- build-tests
   --
   fake dir pats ("build-tests:" <> target) $ const $
     stack_ dir [ "build", target, "--fast", "--test", "--no-run-tests" ]
 
-  -- | build-tests-error
+  -- build-tests-error
   --
   fake dir pats ("build-tests-error:" <> target) $ const $
     stack_ dir [ "build", target, "--fast", "--test", "--no-run-tests", "--ghc-options=-Werror" ]
 
-  -- | install
+  -- install
   --
   fake dir pats ("install:" <> target) $ const $
     stack_ dir [ "build", target, "--fast", "--copy-bins" ]
 
-  -- | tests
+  -- tests
   --
   phony ("tests:" <> target) $
     stack_ dir [ "build", target, "--fast", "--test" ]
 
-  -- | tests-error
+  -- tests-error
   --
   phony ("tests-error:" <> target) $
     stack_ dir [ "build", target, "--fast", "--test", "--ghc-options=-Werror" ]
 
-  -- | ghci
+  -- ghci
   --
   phony ("ghci:" <> target) $
     stack_ dir [ "ghci", target ]
 
-  -- | ghci-tests
+  -- ghci-tests
   --
   phony ("ghci-tests:" <> target) $
     stack_ dir [ "ghci", target, "--test" ]
@@ -499,18 +504,18 @@ stackTargetRules dir target pats = do
 --
 cabalRules :: FilePath -> FilePath -> Rules ()
 cabalRules dir file = do
-  -- | "gitVersion"
+  -- "gitVersion"
   --
   meta "cabalVersion" $ gitVersion dir
 
-  -- | cabal
+  -- cabal
   --
   preprocess file (file <.> "m4") $ do
     need [ metaFile "cabalVersion" ]
     version <- dropWhile (not . isDigit) <$> gitVersion dir
     pure [ ("VERSION", version) ]
 
-  -- | publish
+  -- publish
   --
   phony "publish" $ do
     need [ file ]
@@ -539,7 +544,7 @@ cabalRules dir file = do
 --
 dbRules :: FilePath -> Rules ()
 dbRules dir =
-  -- | schema:apply
+  -- schema:apply
   --
   phony "schema:apply" $
     schemaApply_ dir [ "--dir", "schema/migrations" ]
@@ -548,7 +553,7 @@ dbRules dir =
 --
 dockerRules :: FilePath -> [FilePattern] -> Rules ()
 dockerRules dir pats = do
-  -- | mirror
+  -- mirror
   --
   phony "mirror" $ do
     dir' <- mirrorDir
@@ -559,7 +564,7 @@ dockerRules dir pats = do
         createDirectoryIfMissing True $ dropFileName (dir' </> file)
         copyFile file (dir' </> file)
 
-  -- | mirror-remote
+  -- mirror-remote
   --
   phony "mirror-remote" $ do
     need [ "mirror" ]
@@ -567,25 +572,25 @@ dockerRules dir pats = do
     p <- parentDir
     rsync_ [ "-Laz", "--delete", buildFile p <> "/", r <:> p <> "/" ]
 
-  -- | mirrored
+  -- mirrored
   --
   phony "mirrored" $ do
     ok <- remoteFlag
     need [ bool "mirror" "mirror-remote" ok ]
 
-  -- | docker:login
+  -- docker:login
   --
   phony "docker:login" $ do
     login <- aws [ "ecr", "get-login", "--no-include-email", "--region", "us-west-2" ]
     unit $ cmd login
 
-  -- | docker:login-remote
+  -- docker:login-remote
   --
   phony "docker:login-remote" $ do
     login <- aws [ "ecr", "get-login", "--no-include-email", "--region", "us-west-2" ]
     rssh_ [ login ]
 
-  -- | docker:logined
+  -- docker:logined
   --
   phony "docker:logined" $ do
     ok <- remoteFlag
