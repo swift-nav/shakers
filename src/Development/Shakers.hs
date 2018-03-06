@@ -346,7 +346,7 @@ preprocess target file macros =
     alwaysRerun
     let f k v = "-D" <> k <=> v
     macros' <- macros
-    content <- m4 $ file : (uncurry f <$> macros')
+    content <- m4 $ (uncurry f <$> macros') <> [file]
     writeFileChanged out content
 
 -- | Build a hash version from a directory and file pattern.
