@@ -25,13 +25,6 @@ library
                      , regex-compat
                      , shake
 
-executable shake-shakers
-  main-is:             Shakefile.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
-  build-depends:       base
-                     , shakers
-  default-language:    Haskell2010
-
 source-repository head
   type:                git
   location:            git@github.com:swift-nav/shakers.git
