@@ -19,10 +19,8 @@ library
   ghc-options:         -Wall
   build-depends:       base >= 4.8 && < 5
                      , basic-prelude
-                     , deepseq
                      , directory
                      , lifted-base
-                     , regex-compat
                      , shake
 
 source-repository head

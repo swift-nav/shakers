@@ -60,12 +60,10 @@ import BasicPrelude               as Exports hiding ((*>))
 #if MIN_VERSION_basic_prelude(0,7,0)
 import Control.Exception.Lifted
 #endif
-import Control.DeepSeq
 import Data.Char
 import Development.Shake          as Exports
 import Development.Shake.FilePath
 import System.Directory
-import Text.Regex
 
 -- | Join strings with ":"
 --
@@ -241,11 +239,6 @@ schemaApply_ d = cmdArgsDir_ d "schema-apply"
 --
 m4 :: [String] -> Action String
 m4 = cmdArgs "m4"
-
--- | tar command.
---
-tar_ :: FilePath -> [String] -> Action ()
-tar_ d = cmdArgsDir_ d "tar"
 
 -- | AWS command.
 --
