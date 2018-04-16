@@ -524,7 +524,7 @@ cabalRules dir file = do
   --
   phony "publish" $ do
     need [ file ]
-    stack_ dir [ "upload", dir, "--no-signature" ]
+    stack_ dir [ "upload", dir, "--pvp-bounds", "lower", "--no-signature", "--ignore-check" ]
 
 -- | Database rules
 --
