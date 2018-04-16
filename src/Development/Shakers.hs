@@ -218,7 +218,7 @@ sed_ d = cmdArgsDir_ d "sed"
 -- | replace inline command.
 --
 replace :: FilePath -> FilePath -> String -> String -> Action ()
-replace d f a b = sed_ d [ "--in-place=.bak", "s" </> a </> b </> "g", f ]
+replace d f a b = sed_ d [ "-i.bak", "s" </> a </> b </> "g", f ]
 
 -- | Git command in a directory.
 --
