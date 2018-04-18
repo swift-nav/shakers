@@ -1,4 +1,4 @@
-sudo: false
+sudo: required
 dist: trusty
 
 language: generic
@@ -20,10 +20,14 @@ before_install: mkdir -p $HOME/.local/bin
 install:
   - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
   - stack config set system-ghc --global true
+  - pip install --user --upgrade awscli
 
 before_script: rm -rf .build
-script: ./Shakefile.hs build-error
+script: ./Shakefile.hs docker:travis
 
 env:
   global:
     - PATH=$HOME/.local/bin:/opt/ghc/8.2.2/bin:$PATH
+    - AWS_DEFAULT_REGION=us-west-2
+    - secure: "QGpQBIxl4y509Flop6pXf0NzGNFvyPh0SZi1IhHTX3F8mIh2G1zRO745HNEyhnMf7jtFNeT17yeCTEQu+YP+NxrBeGH7cdxSn2+qmLLDqJTltOr/AI/TlzqQqlXuYqZLStRKsjTTSrQugQgxJX03AwZzi0S6ESmxekrVHdmzQOjTYNDCHEaJKhl7vwc6tG6bvMxDwmGxY+EkAs2M9EOT6TQSZ74+WELTTq2OMdzLE3X0/Gq+Rkqn27oKfRNIi+qLOQ3krYcj2q6F1T1fP+1jzSbOwb/px+alWhDmFfJtWfxPwPLZTQ2OMyPPmGSpOJNqjBCrfc9kefhNMhdW1UEerOFZVSict4x4NwjXaMPlyFh7qxD86F3RshWgjZXGvTyS8NGFo6QKuH8bFrgtnfR3LwZavFHETmnkzXbQV5v6RiXbagToYL9UJlirKSGC8iNEgNb51CaxaYqHLMD3g0gct9RwJPi/YLG3AZrrZc3TqK6560udDX/vOYRBvLZr+2gTNEoi6LyrbFtJK+OFrXs2ohkZ+r88CcuvGPC+1QC3hbvaTophsxFN/5tH9/p3TRGZZ8Xs690eyYRIiZO4rlyqW9OqozQwZBnJose4jDkIuSKBNLkdFmg2wuEffwBIUFd7+aUsAccxB1f1YOHQBk6c6Ms0A9aOGVmgv4rd2PpQlzU="
+    - secure: "daz9rHtBnoiq/wAPp3ZYMI35HC1kpWTIiAJGwkFOxjc3fGdm0UBPwHg1XJZ98VPxzZmYdJngkPNPh4HS/oMj5Tjbkt9u4GfZBtfsGhtAYOjo9yodNiseBgyJoyqOuW8R9o9FXeiBSqyEV1L5MeNu4Aw+GrtPT9tAUdmaoEWkPXX3934ke93Om+nB+CzGm0UHxhto08WeItW+RgG7fzEanSQ74nI40KE74rv1imUhj8UtIrzoEm7ssy1fcZ4/YwuTp2ul23LkjuseoTdcEMe79D69zSlZ/ca0UGwQgCrie47OkuRnPXq7XFDl6CHi+XBukTd9sYbUCIX66AUXs3mHygdb92IshaeV1GhKgzqm9T06jsE8ymrTcmaeWKgqpsmGZfjaMFcyrxG1w4NEuVtPXM2AyE9VdrhSAkN5ZsJ73iToI/o5bPrAKxQ+k+GL+GAs3Q7Pf34pjQP3TWxZk40YCbijLYiZWG3CMOV5RyPr7OPgphhZ/m4wmX/29b0n+kihcB1tpg+cw63mvXgNqJ1u4rSeXzmE0lUDIbjCDPLRuW6JqnW9iiQoJTD7zKkSEnvt+39cqffvpecKEMY6snkRloD4ULcPrXJKS1I5KQxApt+A2DGy/cRycf5rqqEBnIfburq4HVah3lxkaER5/FV/XSwrOzXZY3H/FinB0ptQxXc="
