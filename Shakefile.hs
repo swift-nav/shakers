@@ -59,7 +59,7 @@ main = shakeMain $ do
   --
   stackRules "." pats
 
-  -- | Local rules.
+  -- | Docker rules.
   --
   dockerRules'
 
