@@ -34,7 +34,7 @@ dockerRules' = do
   phony "docker:travis" $ do
     need [ "mirrored", "docker:logined" ]
     xdocker_ [ "build", "-t", "travis", "." ]
-    xdocker_ [ "run", "-t", "travis", "./Shakefile.hs", "build-error", "lint" ]
+    xdocker_ [ "run", "-t", "travis", "./Shakefile.hs" ]
 
 -- | Main entry point.
 --
