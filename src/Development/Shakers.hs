@@ -429,14 +429,14 @@ stackRules dir pats = do
   phony "tests-error" $
     stack_ dir [ "build", "--fast", "--test", "--ghc-options=-Werror" ]
 
-  -- repl
+  -- ghci
   --
-  phony "repl" $
+  phony "ghci" $
     stack_ dir [ "ghci" ]
 
-  -- repl-tests
+  -- ghci-tests
   --
-  phony "repl-tests" $
+  phony "ghci-tests" $
     stack_ dir [ "ghci", "--test" ]
 
   -- docs
