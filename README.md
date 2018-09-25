@@ -11,19 +11,19 @@ A library of [shake][shake] helpers.
 
     # build the project's libraries, executables, and tests
     $ ./Shakefile.hs build-tests-error
-    
+
     # test the project
     $ ./Shakefile.hs tests-error
-    
+
     # start an interpreter with the project's libraries, executables, and tests loaded
     $ ./Shakefile.hs ghci-tests
-    
+
     # clean the project
     $ ./Shakefile.hs clean
-    
+
     # lint the project source code
     $ ./Shakefile.hs lint
-    
+
     # format the project source code
     $ ./Shakefile.hs format
 
@@ -33,7 +33,7 @@ A library of [shake][shake] helpers.
 To build and test `shakers`, the following dependencies may be required:
 
 + [stack][stack]
-
++ [stylish][stylish-haskell]
 
 [shakers]:       https://github.com/swift-nav/shakers
 [hackage]:       https://hackage.haskell.org/package/shakers
@@ -45,3 +45,4 @@ To build and test `shakers`, the following dependencies may be required:
 [basic-prelude]: https://github.com/snoyberg/basic-prelude
 [stack]:         https://docs.haskellstack.org/en/stable/README/#how-to-install
 [shake]:         http://shakebuild.com/
+[stylish]:       https://hackage.haskell.org/package/stylish-haskell
