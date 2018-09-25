@@ -33,7 +33,7 @@ A library of [shake][shake] helpers.
 To build and test `shakers`, the following dependencies may be required:
 
 + [stack][stack]
-+ [stylish][stylish-haskell]
++ [stylish-haskell][stylish]
 
 [shakers]:       https://github.com/swift-nav/shakers
 [hackage]:       https://hackage.haskell.org/package/shakers
